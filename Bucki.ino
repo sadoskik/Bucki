@@ -168,9 +168,9 @@ int RC_inputs = 0;                // The number of pins in pwmPIN that are conne
 
 //SANWA 6CH 40MHz with corona RP6D1  
 //                THR     RUD     PIT     BAL     SWITCH  SLIDER
-int RC_min[6] = { 1112,    1112,   976,    960,    1056,   1116};
-int RC_mid[6] = { 1488,   1488,   1424,   1398,   1374,   1460};
-int RC_max[6] = { 1864,   1864,   1796,   1764,   1876,   1796};
+int RC_min[6] = { 1208,    1208,   1208,    1208,    1208,   1208};
+int RC_mid[6] = { 1208,   1208,   1208,   1208,   1208,   1208};
+int RC_max[6] = { 1868,   1868,   1868,   1868,   1868,   1868};
 
 // fail safe positions
 
@@ -495,11 +495,21 @@ float PWM_duty(){
   return duty;
 }
 
+
+
+
+/*
+ * CUSTOM CODE
+ * CONSTANTS BELOW DETERMINE BEHAVIOR
+ * FIRE DURATION: THE AMOUNT OF TIME (IN MILLIS) THAT THE SOLENIOD IS POWERED
+ * RECHARGE_DURATION: THE AMOUNT OF TIME (IN MILLIS) AFTER THE __COMPLETION__ OF SOLENOID POWERING BEFORE IT CAN BE POWERED AGAIN
+ * CONTROLPIN: THE PIN THAT POWERS THE SOLENOID'S MOSFET
+ */
 bool active;
 unsigned int fireTime;
 unsigned int stopTime;
 unsigned int FIRE_DURATION = 350; //milliseconds
-unsigned int RECHARGE_DURATION = 8000; //milliseconds
+unsigned int RECHARGE_DURATION = 1000; //milliseconds
 int controlPin = 12;
 
 void setup() {
@@ -520,27 +530,34 @@ void loop() {
     if(RC_avail() || now - rc_update > 25){   // if RC data is available or 25ms has passed since last update (adjust to be equal or greater than the frame rate of receiver)
       rc_update = now;                           
       
-      //print_RCpwm();                        // uncommment to print raw data from receiver to serial
+      print_RCpwm();                        // uncommment to print raw data from receiver to serial
       RC_in[1] = RC_decode(1);             // decode receiver channel and apply failsafe
         
-      //print_decimal2percentage(RC_in[1]);   // uncomment to print calibrated receiver input (+-100%) to serial
+      print_decimal2percentage(RC_in[1]);   // uncomment to print calibrated receiver input (+-100%) to serial
 
       
       
 
-      //Serial.println();                       // uncomment when printing calibrated receiver input to serial.
+      Serial.println();                       // uncomment when printing calibrated receiver input to serial.
+      Serial.println();
+      Serial.println();
     }
-
+    Serial.print("Recharge: ");
+    Serial.println(now - stopTime);
+    
     if(RC_in[1] > 0.5 && !active && now - stopTime > RECHARGE_DURATION) {
+        
         digitalWrite(controlPin,HIGH);
         digitalWrite(13,HIGH);
         active = true;
         fireTime = now;
+        Serial.println("Firing");
       }
     else if(active && now - fireTime > FIRE_DURATION) {
       digitalWrite(controlPin,LOW);
       digitalWrite(13,LOW);
       stopTime = now;
       active = false;
+      Serial.println("Stop Fire");
     }
 }
